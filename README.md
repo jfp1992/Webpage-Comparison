@@ -12,5 +12,5 @@
 
 ## General info
 ### Update these lines (currently lines, 22/23):
-* ref_url = ''
-* com_url = ''
+* ref_url = 'www.reference.com'
+* com_url = 'www.comparison.com'
