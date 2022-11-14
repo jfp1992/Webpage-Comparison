@@ -1,7 +1,8 @@
-from base.driver_setup import driver
-
 from urllib.parse import urlparse, urljoin
-from base.tools import Element
+
+from base.tools import Tools
+from base.env_setup import get_arg
+
 import colorama
 
 from custom_logging import xlogging
@@ -17,11 +18,14 @@ depth = 0
 
 
 class Scraper:
-    def __init__(self, url):
+    def __init__(self, page, context, url):
+        self.page = page
+        self.context = context
         self.url = url
         self.internal_urls = set()
         self.external_urls = set()
         self.visited_urls = set()
+        self.depth = 0  # Tracks how deep the scraper is in the tree
 
     def is_valid(self, href):
         """
@@ -43,16 +47,16 @@ class Scraper:
         domain_name = urlparse(self.url).netloc
         xlogging(2, f"Domain: {domain_name}")
 
-        driver.get(url)
+        self.page.goto(url)
         self.visited_urls.add(url)
 
-        if self.url[-3:] == 'uli':
+        if self.url[-3:] == "uli":
             self.url = self.url[:-3]
 
-        hrefs = Element('//a[@href]').presence_multi()
+        hrefs = Tools(self.page, self.context).get_elements("//a[@href]")
 
         for href in hrefs:
-            href = href.get_attribute('href')
+            href = href.get_attribute("href")
             if href == "" or href is None:
                 continue
 
@@ -65,14 +69,14 @@ class Scraper:
             if href in self.internal_urls:
                 continue
 
-            if '/fr/' in href:
+            if "/fr/" in href:
                 continue
 
-            if href[-4] == '.':
+            if href[-4] == ".":
                 xlogging(2, f"Ignoring URL with extension: {href}")
                 continue
 
-            if href[-5] == '.':
+            if href[-5] == ".":
                 xlogging(2, f"Ignoring URL with extension: {href}")
                 continue
 
@@ -89,23 +93,29 @@ class Scraper:
         return urls
 
     def _crawl(self, url):
-        """
-        Crawls a web page and extracts all links.
-        You'll find all links in `external_urls` and `internal_urls` global set variables.
-        params:
-            max_urls (int): number of max urls to crawl, default is 30.
-        """
-        global depth
-        xlogging(2, f"{YELLOW}[*] Crawling: {url}{RESET} Depth: {depth}")
-        links = self.get_all_website_links(url)
-        if links is None:
-            depth -= 1
-            return self.internal_urls
+        """Loops through the returned list of urls which are each looped through to get a returned list of urls for each
+        which are each looped through to get a returned list of urls for each
+        which are each looped through to get a returned list of urls for each recursively."""
+
+        xlogging(2, f"{YELLOW}[*] Crawling at depth {str(self.depth).ljust(3)}| {url}{RESET}")
+        links = self.get_all_website_links(url)  # Get links (after filtering) from current url
+
+        if links is None:  # Leave
+            self.depth -= 1
+            return
+
         for link in links:
-            depth += 1
-            self._crawl(link)
-        depth -= 1
+            if get_arg("maxdepth"):
+                if self.depth == int(get_arg("maxdepth")):  # Leave
+                    self.depth -= 1
+                    return
+
+            self.depth += 1
+            self._crawl(link)  # Go deeper
+
+        self.depth -= 1  # Leave
         return self.internal_urls
 
     def crawl(self):
+        """Triggers the crawler to start gathering broken links"""
         return self._crawl(self.url)
