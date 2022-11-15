@@ -18,14 +18,27 @@ depth = 0
 
 
 class Scraper:
-    def __init__(self, page, context, url):
+    def __init__(self, page, context, filename_ext, base_url):
         self.page = page
         self.context = context
-        self.url = url
+        self.filename_ext = filename_ext
+        self.base_url = base_url
+
         self.internal_urls = set()
         self.external_urls = set()
         self.visited_urls = set()
+        self.ignore_list = set()
         self.depth = 0  # Tracks how deep the scraper is in the tree
+
+    def get_screenshot(self, filename, page):
+        xlogging(2, f"Filename: {filename}")
+        if len(filename) == 0:
+            return
+        filename = filename.replace("/", "_")
+        if filename[0] == "_":
+            filename = filename[1:]
+
+        page.screenshot(path=f"./input/{filename}.png", full_page=True)
 
     def is_valid(self, href):
         """
@@ -42,18 +55,26 @@ class Scraper:
         if url in self.visited_urls:
             return
 
-        urls = set()
+        domain_name = urlparse(self.base_url).netloc
 
-        domain_name = urlparse(self.url).netloc
-        xlogging(2, f"Domain: {domain_name}")
+        try:
+            self.page.goto(url)
+            self.visited_urls.add(url)
+        except TimeoutError:
+            self.visited_urls.add(url)
+            return
 
-        self.page.goto(url)
-        self.visited_urls.add(url)
+        if url == self.base_url:
+            self.get_screenshot(url.replace(self.base_url, "") + "homepage_" + self.filename_ext, self.page)
+        else:
+            self.get_screenshot(url.replace(self.base_url, "") + self.filename_ext, self.page)
 
-        if self.url[-3:] == "uli":
-            self.url = self.url[:-3]
+        if self.base_url[-3:] == "uli":
+            self.base_url = self.base_url[:-3]
 
         hrefs = Tools(self.page, self.context).get_elements("//a[@href]")
+
+        urls = set()
 
         for href in hrefs:
             href = href.get_attribute("href")
@@ -69,15 +90,23 @@ class Scraper:
             if href in self.internal_urls:
                 continue
 
+            if href in self.visited_urls:
+                continue
+
+            if href in self.ignore_list:
+                continue
+
             if "/fr/" in href:
                 continue
 
             if href[-4] == ".":
                 xlogging(2, f"Ignoring URL with extension: {href}")
+                self.ignore_list.add(href)
                 continue
 
             if href[-5] == ".":
                 xlogging(2, f"Ignoring URL with extension: {href}")
+                self.ignore_list.add(href)
                 continue
 
             if domain_name not in href:
@@ -118,4 +147,4 @@ class Scraper:
 
     def crawl(self):
         """Triggers the crawler to start gathering broken links"""
-        return self._crawl(self.url)
+        return self._crawl(self.base_url)
