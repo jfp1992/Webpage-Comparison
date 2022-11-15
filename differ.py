@@ -1,10 +1,9 @@
 """ Based on code from Olivier Bénard @ https://github.com/olivierbenard/differences-between-two-images
 """
-
+from cv2 import cv2
 import numpy as np
 from pathlib import Path
 import warnings
-from cv2 import misc as cv2
 
 from custom_logging import xlogging
 
@@ -42,7 +41,7 @@ class Differences:
     def check_height(self, image):
         if self.ref_h == self.com_h:
             xlogging(2, f"{self.ref_name} is the same height {self.com_name}")
-            return
+
         # bottom
         elif self.ref_h < self.com_h:
             xlogging(2, f"Adding {self.com_h - self.ref_h} pixels to the bottom of reference {self.ref_name}")
@@ -50,7 +49,6 @@ class Differences:
             cv2.imwrite(image, self.ref_frame)
             self.ref_frame = cv2.imread(image)
             self.ref_grey_frame = cv2.cvtColor(self.ref_frame, cv2.COLOR_BGR2GRAY)
-            return
 
         elif self.com_h < self.ref_h:
             xlogging(2, f"Adding {self.ref_h - self.com_h} pixels to the bottom of comparison {self.com_name}")
@@ -58,12 +56,11 @@ class Differences:
             cv2.imwrite(image, self.com_frame)
             self.com_frame = cv2.imread(image)
             self.com_grey_frame = cv2.cvtColor(self.com_frame, cv2.COLOR_BGR2GRAY)
-            return
 
     def check_width(self, image):
         if self.ref_w == self.com_w:
             xlogging(2, f"{self.ref_name} is the same height {self.com_name}")
-            return
+
         # right
         elif self.ref_w < self.com_w:
             xlogging(2, f"Adding {self.com_w - self.ref_w} pixels to the right of reference {self.ref_name}")
