@@ -1,4 +1,4 @@
-opencv-python
-numpy
-scikit-image
+opencv-python==4.5.5.64
+numpy==1.23.4
+scikit-image==scikit-image==0.19.3
 git+https://github.com/jfp1992/Playwright-Test-Tooling@main
