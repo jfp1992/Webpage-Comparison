@@ -1,6 +1,5 @@
-from base.env_setup import Browser
+from base.env_setup import Browser, get_arg
 from base.record_time import RecordTime
-from base.test_base import TestBase
 from playwright.sync_api import sync_playwright
 
 from custom_logging import xlogging
@@ -11,15 +10,14 @@ import glob
 
 
 def get_screenshot(filename, page):
-    xlogging(3, f"Filename before replace: {filename}")
+    xlogging(2, f"Filename: {filename}")
     if len(filename) == 0:
         return
     filename = filename.replace("/", "_")
     if filename[0] == "_":
         filename = filename[1:]
 
-    xlogging(3, f"Filename after replace: {filename}")
-    page.screenshot(path=f"./input/{filename}.png")
+    page.screenshot(path=f"./input/{filename}.png", full_page=True)
 
 
 def check_in_list(paths, find_path):
@@ -29,38 +27,23 @@ def check_in_list(paths, find_path):
         else:
             return False
 
-TestBase
+
 with sync_playwright() as p:
     context = Browser(p).start()
     page = context.new_page()
 
-    ref_url = ""
-    com_url = ""
-
     total_test_time = RecordTime("Entire run")
     total_test_time.start()
 
-    page.goto(ref_url)
-
-    ref_urls = list(Scraper(page, context, f"{ref_url}uli").crawl())
-
-    for url in ref_urls:
-        if "/ics/" in url or "/logout" in url or "/autologout" in url:
-            continue
-        xlogging(2, f"Taking a screenshot of {url}")
-        page.goto(url)
-        get_screenshot(url.replace(ref_url, "") + "_ref", page)
-
-    page.goto(f"{com_url}uli")
-    com_url = com_url.replace("CFT:CFT@", "")
-    com_urls = list(Scraper(page, context, f"{com_url}uli").crawl())
+    ref_urls = list(Scraper(page, context, "ref", get_arg("ref_url")).crawl())
+    com_urls = list(Scraper(page, context, "com", get_arg('com_url')).crawl())
 
     for url in com_urls:
         if "/ics/" in url or "/logout" in url or "/autologout" in url:
             continue
         xlogging(2, f"Taking a screenshot of {url}")
         page.goto(url)
-        get_screenshot(url.replace(com_url, "") + "_com", page)
+        get_screenshot(url.replace(get_arg('com_url'), "") + "_com", page)
 
     loop_count = 0
     for i in zip(ref_urls, com_urls):
