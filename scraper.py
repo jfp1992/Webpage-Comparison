@@ -4,6 +4,7 @@ from base.tools import Tools
 from base.env_setup import get_arg
 
 import colorama
+from playwright._impl._api_types import Error
 
 from custom_logging import xlogging
 
@@ -61,6 +62,9 @@ class Scraper:
             self.page.goto(url)
             self.visited_urls.add(url)
         except TimeoutError:
+            self.visited_urls.add(url)
+            return
+        except Error:
             self.visited_urls.add(url)
             return
 
