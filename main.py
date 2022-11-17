@@ -35,8 +35,8 @@ with sync_playwright() as p:
     total_test_time = RecordTime("Entire run")
     total_test_time.start()
 
-    ref_urls = list(Scraper(page, context, "ref", get_arg("ref_url")).crawl())
-    com_urls = list(Scraper(page, context, "com", get_arg('com_url')).crawl())
+    ref_urls = list(Scraper(page, context, "_ref", get_arg("ref_url")).crawl())
+    com_urls = list(Scraper(page, context, "_com", get_arg('com_url')).crawl())
 
     for url in com_urls:
         if "/ics/" in url or "/logout" in url or "/autologout" in url:
